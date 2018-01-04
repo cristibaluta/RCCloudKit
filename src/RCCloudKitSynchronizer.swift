@@ -8,7 +8,7 @@ import CoreData
 
 @objc class RCCloudKitSynchronizer: NSObject {
     
-    let moc: NSManagedObjectContext!
+    fileprivate let moc: NSManagedObjectContext!
     fileprivate let ck: RCCloudKit!
     fileprivate var toUpload = [NSManagedObject]()
     fileprivate var toDelete = [NSManagedObject]()
@@ -33,25 +33,37 @@ import CoreData
         print("Found objs to upload: \(toUpload.count)")
         print("Found objs to delete: \(toDelete.count)")
         
-        uploadAll { (success) in
-            self.getLatestServerChanges({ (hasIncomingChanges) in
+        startUpload { (success) in
+            
+            UserDefaults.standard.lastUploadDate = Date()
+            
+            self.startDownload { (hasIncomingChanges) in
+                
                 if self.moc.hasChanges {
                     self.isSavingFromCK = true
                     try? self.moc.save()
                     self.isSavingFromCK = false
                 }
-                UserDefaults.standard.lastUploadDate = Date()
                 print("Sync finished")
                 completion(hasIncomingChanges)
-            })
+            }
         }
     }
     
-    fileprivate func uploadAll (_ completion: @escaping ((_ success: Bool) -> Void)) {
+    func startUpload (_ completion: @escaping ((_ success: Bool) -> Void)) {
         
-        self.uploadNextObj { (success) in
+        uploadNextObj { (success) in
             print("Upload finished")
             completion(success)
+        }
+    }
+    
+    func startDownload (_ completion: @escaping ((_ hasIncomingChanges: Bool) -> Void)) {
+        
+        ck.queryUpdates() { changed, deletedIds, error in
+            print("Found clipboards to download \(changed.count)")
+            print("Found clipboards to delete \(deletedIds.count)")
+            completion(changed.count > 0 || deletedIds.count > 0)
         }
     }
     
@@ -69,15 +81,6 @@ import CoreData
             })
         } else {
             completion(true)
-        }
-    }
-    
-    func getLatestServerChanges (_ completion: @escaping ((_ hasIncomingChanges: Bool) -> Void)) {
-        
-        ck.queryUpdates() { changed, deletedIds, error in
-            print("Found clipboards to download \(changed.count)")
-            print("Found clipboards to delete \(deletedIds.count)")
-            completion(changed.count > 0 || deletedIds.count > 0)
         }
     }
 }
@@ -101,7 +104,7 @@ extension RCCloudKitSynchronizer {
         
         toUpload += Array(inserted) + Array(updated)
         if toUpload.count > 0 {
-            uploadAll({ (success) in
+            startUpload({ (success) in
                 
             })
         }

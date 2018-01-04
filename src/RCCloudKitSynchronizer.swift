@@ -40,7 +40,7 @@ import CoreData
                     try? self.moc.save()
                     self.isSavingFromCK = false
                 }
-                UserDefaults.standard.lastSyncDate = Date()
+                UserDefaults.standard.lastUploadDate = Date()
                 print("Sync finished")
                 completion(hasIncomingChanges)
             })

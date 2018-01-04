@@ -5,6 +5,7 @@
 
 import Foundation
 import CoreData
+import CloudKit
 
 @objc class RCCloudKitDefaultDataSource: NSObject {
     
@@ -29,6 +30,10 @@ extension RCCloudKitDefaultDataSource: RCCloudKitDataSource {
         return nil
     }
     
+    func recordID(from managedObject: NSManagedObject) -> CKRecordID? {
+        return managedObject.value(forKey: "recordId") as? CKRecordID
+    }
+    
     func managedObjectsToUpload() -> [NSManagedObject] {
         
         var objs = [NSManagedObject]()
@@ -36,7 +41,7 @@ extension RCCloudKitDefaultDataSource: RCCloudKitDataSource {
         for entity in entities {
             
             let request = NSFetchRequest<NSFetchRequestResult>(entityName: entity.name!)
-            request.predicate = NSPredicate(format: "recordName == nil || (recordName != nil && dateModified > %@)", UserDefaults.standard.lastSyncDate as CVarArg)
+            request.predicate = NSPredicate(format: "recordName == nil || (recordName != nil && dateModified > %@)", UserDefaults.standard.lastUploadDate as CVarArg)
             
             if let fetchedObjs = try? moc.fetch(request) as? [NSManagedObject], let o = fetchedObjs {
                 objs += o

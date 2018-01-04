@@ -33,7 +33,7 @@ public extension UserDefaults {
         }
     }
     
-    var lastSyncDate: Date {
+    var lastUploadDate: Date {
         get {
             if let date = self.value(forKey: kLastSyncDateKey) as? Date {
                 return date

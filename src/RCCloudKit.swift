@@ -10,7 +10,8 @@ import CloudKit
 @objc protocol RCCloudKitDataSource {
     // Provide the NSManagedObject corresponding to the CKRecord. If none provided, it will be created.
     func managedObject(from record: CKRecord) -> NSManagedObject?
-    // This are the NSManagedObjects that were never uploaded or the modifiedDate is newer than the lastSyncDate provided by RCCloudKit
+    func recordID(from managedObject: NSManagedObject) -> CKRecordID?
+    // This are the NSManagedObjects that were never uploaded or the modifiedDate is newer than the lastUploadDate provided by RCCloudKit
     func managedObjectsToUpload() -> [NSManagedObject]
     // There are 2 ways to handle deleted objects:
     // 1. you move them to a new table with deleted objects

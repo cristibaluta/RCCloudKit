@@ -36,7 +36,7 @@ extension RCCloudKitDefaultDataSource: RCCloudKitDataSource {
         for entity in entities {
             
             let request = NSFetchRequest<NSFetchRequestResult>(entityName: entity.name!)
-            request.predicate = NSPredicate(format: "recordName == nil || date > %@", UserDefaults.standard.lastSyncDate as CVarArg)
+            request.predicate = NSPredicate(format: "recordName == nil || (recordName != nil && dateModified > %@)", UserDefaults.standard.lastSyncDate as CVarArg)
             
             if let fetchedObjs = try? moc.fetch(request) as? [NSManagedObject], let o = fetchedObjs {
                 objs += o

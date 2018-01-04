@@ -38,6 +38,9 @@ extension RCCloudKit {
             completion(obj)
             return
         }
+        // The changed values will be lost due to unsync operations
+        let changedValues = obj.changedValues()
+        print(obj.changedValues())
         
         // Query from server if exists
         fetchCKRecord(of: obj) { (record) in
@@ -47,21 +50,17 @@ extension RCCloudKit {
                 print("Record not found on server, create it now:")
                 record = CKRecord(recordType: entityName, zoneID: zone.zoneID)
             }
-            record = self.updateRecord(record!, with: obj)
-            print(record)
+            record = self.updateRecord(record!, with: changedValues)
             
             privateDB.save(record!, completionHandler: { savedRecord, error in
                 
-                // 
-                obj.setValue(savedRecord?.recordID, forKey: "recordId")
-                obj.setValue(savedRecord?.recordID.recordName, forKey: "recordName")
-                
-                print(">>>>> 2. Record after saving to CloudKit:")
-                print(savedRecord)
-//                print(obj)
-//                print(error)
-                
-                completion(obj)
+                if let record = savedRecord {
+                    print(">>>>> 2. Record saved to CloudKit: \(record)")
+                    let obj = self.delegate.save(record: record, in: obj)
+                    completion(obj)
+                } else {
+                    completion(obj)
+                }
             })
         }
     }
@@ -128,19 +127,17 @@ extension RCCloudKit {
     }
     
     fileprivate func updateObj (_ obj: NSManagedObject, with record: CKRecord) -> NSManagedObject {
-        print(record.allKeys())
+        
         for key in record.allKeys() {
             obj.setValue(record[key], forKey: key)
         }
         return delegate.save(record: record, in: obj)
     }
     
-    fileprivate func updateRecord (_ record: CKRecord, with obj: NSManagedObject) -> CKRecord {
+    fileprivate func updateRecord (_ record: CKRecord, with changedValues: [String: Any]) -> CKRecord {
         
-        let changedAttributes = Array(obj.changedValues().keys)
-        print(changedAttributes)
-        for key in changedAttributes {
-            record[key] = obj.value(forKey: key) as? CKRecordValue
+        for (key, value) in changedValues {
+            record[key] = value as? CKRecordValue
         }
         
         return record

@@ -7,7 +7,6 @@ import Foundation
 import CloudKit
 
 private let kChangeTokenKey = "RCCloudKit-ServerChangeToken"
-private let kLastSyncDateKey = "RCCloudKit-LastSyncDate"
 
 public extension UserDefaults {
     
@@ -30,20 +29,6 @@ public extension UserDefaults {
             } else {
                 self.removeObject(forKey: kChangeTokenKey)
             }
-        }
-    }
-    
-    var lastUploadDate: Date {
-        get {
-            if let date = self.value(forKey: kLastSyncDateKey) as? Date {
-                return date
-            } else {
-                return Date(timeIntervalSince1970: 0)
-            }
-        }
-        set {
-            self.set(newValue, forKey: kLastSyncDateKey)
-            self.synchronize()
         }
     }
 }

@@ -20,8 +20,8 @@ extension RCCloudKit {
             
             // Delete CoreData objects permanently
             let deletedRecordsNames: [String] = deletedRecordsIds.map { $0.recordName }
-            for recordId in deletedRecordsIds {
-                self.delegate.delete(with: recordId)
+            for recordID in deletedRecordsIds {
+                self.delegate.delete(with: recordID)
             }
             
             DispatchQueue.main.async {
@@ -72,11 +72,11 @@ extension RCCloudKit {
             completion(false)
             return
         }
-        guard let recordId = dataSource.recordID(from: obj) else {
+        guard let recordID = dataSource.recordID(from: obj) else {
             completion(true)// The object is not yet uploaded to CK, means we can consider it was deleted with success
             return
         }
-        privateDB.delete(withRecordID: recordId, completionHandler: { (recordName, error) in
+        privateDB.delete(withRecordID: recordID, completionHandler: { (recordName, error) in
             completion(error != nil)
         })
     }
@@ -91,12 +91,12 @@ extension RCCloudKit {
             completion(nil)
             return
         }
-        guard let recordId = obj.value(forKey: "recordId") as? CKRecordID else {
+        guard let recordID = obj.value(forKey: "recordID") as? CKRecordID else {
             completion(nil)
             return
         }
         
-        privateDB.fetch(withRecordID: recordId) { (record, error) in
+        privateDB.fetch(withRecordID: recordID) { (record, error) in
             
             print(error)
             

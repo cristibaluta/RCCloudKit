@@ -35,8 +35,6 @@ import CoreData
         
         startUpload { (success) in
             
-            UserDefaults.standard.lastUploadDate = Date()
-            
             self.startDownload { (hasIncomingChanges) in
                 
                 if self.moc.hasChanges {
@@ -103,6 +101,7 @@ extension RCCloudKitSynchronizer {
         print("updated \(updated)")
         
         toUpload += Array(inserted) + Array(updated)
+        toUpload = toUpload.flatMap { $0.changedValues().count > 0 ? $0 : nil }
         if toUpload.count > 0 {
             startUpload({ (success) in
                 

@@ -31,7 +31,7 @@ extension RCCloudKitDefaultDataSource: RCCloudKitDataSource {
     }
     
     func recordID(from managedObject: NSManagedObject) -> CKRecordID? {
-        return managedObject.value(forKey: "recordId") as? CKRecordID
+        return managedObject.value(forKey: "recordID") as? CKRecordID
     }
     
     func managedObjectsToUpload() -> [NSManagedObject] {
@@ -41,7 +41,7 @@ extension RCCloudKitDefaultDataSource: RCCloudKitDataSource {
         for entity in entities {
             
             let request = NSFetchRequest<NSFetchRequestResult>(entityName: entity.name!)
-            request.predicate = NSPredicate(format: "recordName == nil || (recordName != nil && dateModified > %@)", UserDefaults.standard.lastUploadDate as CVarArg)
+            request.predicate = NSPredicate(format: "isUploaded == false")
             
             if let fetchedObjs = try? moc.fetch(request) as? [NSManagedObject], let o = fetchedObjs {
                 objs += o

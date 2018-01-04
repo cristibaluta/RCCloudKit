@@ -22,12 +22,12 @@ import CloudKit
 
 extension RCCloudKitDefaultDelegate: RCCloudKitDelegate {
     
-    func delete(with recordId: CKRecordID) {
+    func delete(with recordID: CKRecordID) {
         
         let entities = moc.persistentStoreCoordinator!.managedObjectModel.entities
         for entity in entities {
             let request = NSFetchRequest<NSFetchRequestResult>(entityName: entity.name!)
-            request.predicate = NSPredicate(format: "recordName == %@", recordId.recordName as CVarArg)
+            request.predicate = NSPredicate(format: "recordName == %@", recordID.recordName as CVarArg)
             if let fetchedObj = try? self.moc.fetch(request) as? [NSManagedObject], let obj = fetchedObj?.first {
                 self.moc.delete(obj)
             }
@@ -36,8 +36,9 @@ extension RCCloudKitDefaultDelegate: RCCloudKitDelegate {
     
     func save(record: CKRecord, in managedObject: NSManagedObject) -> NSManagedObject {
         
-        managedObject.setValue(record.recordID, forKey: "recordId")
+        managedObject.setValue(record.recordID, forKey: "recordID")
         managedObject.setValue(record.recordID.recordName, forKey: "recordName")
+        managedObject.setValue(NSNumber(value: true), forKey: "isUploaded")
         
         return managedObject
     }

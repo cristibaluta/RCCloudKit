@@ -22,7 +22,7 @@ import CloudKit
 
 @objc protocol RCCloudKitDelegate {
     // This is your responsability to delete from CoreData the coresponding NSManagedObject
-    func delete(with recordId: CKRecordID)
+    func delete(with recordID: CKRecordID)
     // This is your responsability to save the CKRecord reference to the NSManagedObject
     func save(record: CKRecord, in managedObject: NSManagedObject) -> NSManagedObject
 }

@@ -6,11 +6,14 @@
 import Foundation
 import CloudKit
 
+private let kChangeTokenKey = "RCCloudKit-ServerChangeToken"
+private let kLastSyncDateKey = "RCCloudKit-LastSyncDate"
+
 public extension UserDefaults {
     
     var serverChangeToken: CKServerChangeToken? {
         get {
-            guard let data = self.value(forKey: "ChangeToken") as? Data else {
+            guard let data = self.value(forKey: kChangeTokenKey) as? Data else {
                 return nil
             }
             guard let token = NSKeyedUnarchiver.unarchiveObject(with: data) as? CKServerChangeToken else {
@@ -22,24 +25,24 @@ public extension UserDefaults {
         set {
             if let token = newValue {
                 let data = NSKeyedArchiver.archivedData(withRootObject: token)
-                self.set(data, forKey: "ChangeToken")
+                self.set(data, forKey: kChangeTokenKey)
                 self.synchronize()
             } else {
-                self.removeObject(forKey: "ChangeToken")
+                self.removeObject(forKey: kChangeTokenKey)
             }
         }
     }
     
-    var lastSyncDate: Date? {
+    var lastSyncDate: Date {
         get {
-            if let date = self.value(forKey: "LastSyncDate") as? Date {
+            if let date = self.value(forKey: kLastSyncDateKey) as? Date {
                 return date
             } else {
                 return Date(timeIntervalSince1970: 0)
             }
         }
         set {
-            self.set(newValue, forKey: "LastSyncDate")
+            self.set(newValue, forKey: kLastSyncDateKey)
             self.synchronize()
         }
     }

@@ -16,22 +16,16 @@ extension RCCloudKit {
         fetchChangedRecords(token: changeToken, completion: { (changedRecords, deletedRecordsIds) in
             
             // Save CKRecord to CoreData
-            let objects = self.objsFromRecords(changedRecords)
-            // Delete CoreData objects
-            let deletedRecordNames: [String] = deletedRecordsIds.map { $0.recordName }
-            let entities = self.moc.persistentStoreCoordinator!.managedObjectModel.entities
-            for recordName in deletedRecordNames {
-                for entity in entities {
-                    let request = NSFetchRequest<NSFetchRequestResult>(entityName: entity.name!)
-                    request.predicate = NSPredicate(format: "recordName == %@", recordName as CVarArg)
-                    if let fetchedObj = try? self.moc.fetch(request) as? [NSManagedObject], let obj = fetchedObj?.first {
-                        self.moc.delete(obj)
-                    }
-                }
+            let objects = self.objs(from: changedRecords)
+            
+            // Delete CoreData objects permanently
+            let deletedRecordsNames: [String] = deletedRecordsIds.map { $0.recordName }
+            for recordId in deletedRecordsIds {
+                self.delegate.delete(with: recordId)
             }
             
             DispatchQueue.main.async {
-                completion(objects, deletedRecordNames, nil)
+                completion(objects, deletedRecordsNames, nil)
             }
         })
     }
@@ -91,11 +85,11 @@ extension RCCloudKit {
 
 extension RCCloudKit {
     
-    func fetchCKRecord (of obj: NSManagedObject, completion: @escaping ((_ cobj: CKRecord?) -> Void)) {
+    func fetchCKRecord (of obj: NSManagedObject, completion: @escaping ((_ record: CKRecord?) -> Void)) {
         
         guard let privateDB = self.privateDB else {
+            print("Not logged in or zone not created")
             completion(nil)
-            print("Not logged in")
             return
         }
         guard let recordId = obj.value(forKey: "recordId") as? CKRecordID else {
@@ -115,28 +109,16 @@ extension RCCloudKit {
         }
     }
     
-    fileprivate func objsFromRecords (_ records: [CKRecord]) -> [NSManagedObject] {
+    fileprivate func objs (from records: [CKRecord]) -> [NSManagedObject] {
         return records.map { self.obj(from: $0) }
     }
     
     fileprivate func obj (from record: CKRecord) -> NSManagedObject {
         
         let entityName = record.recordType
-        var obj: NSManagedObject? = nil
-        if let o = dataSource?.managedObject(from: record) {
-            obj = o
-        }
+        var obj: NSManagedObject? = dataSource.managedObject(from: record)
         if obj == nil {
-            print("fetching entity \(entityName) with recordName \(record.recordID.recordName)")
-            let request = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
-            request.predicate = NSPredicate(format: "recordName == %@", record.recordID.recordName as CVarArg)
-            request.returnsObjectsAsFaults = false
-            if let fetchedObj = try? moc.fetch(request) as? [NSManagedObject] {
-                obj = fetchedObj?.first
-            }
-        }
-        if obj == nil {
-            print(">>>>>> obj for record not found, creating one now")
+            print("NSManagedObject for recordName \(record.recordID.recordName) not found, creating one now")
             obj = NSEntityDescription.insertNewObject(forEntityName: entityName, into: moc)
         }
         obj = updateObj(obj!, with: record)
@@ -146,19 +128,17 @@ extension RCCloudKit {
     }
     
     fileprivate func updateObj (_ obj: NSManagedObject, with record: CKRecord) -> NSManagedObject {
-        
+        print(record.allKeys())
         for key in record.allKeys() {
             obj.setValue(record[key], forKey: key)
         }
-        obj.setValue(record.recordID, forKey: "recordId") 
-        obj.setValue(record.recordID.recordName, forKey: "recordName") 
-        
-        return obj
+        return delegate.save(record: record, in: obj)
     }
     
     fileprivate func updateRecord (_ record: CKRecord, with obj: NSManagedObject) -> CKRecord {
         
         let changedAttributes = Array(obj.changedValues().keys)
+        print(changedAttributes)
         for key in changedAttributes {
             record[key] = obj.value(forKey: key) as? CKRecordValue
         }

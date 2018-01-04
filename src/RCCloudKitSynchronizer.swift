@@ -6,11 +6,11 @@
 import Foundation
 import CoreData
 
-@objc class RCCloudKitSyncer: NSObject {
+@objc class RCCloudKitSynchronizer: NSObject {
     
     let moc: NSManagedObjectContext!
     fileprivate let ck: RCCloudKit!
-    fileprivate var toSave = [NSManagedObject]()
+    fileprivate var toUpload = [NSManagedObject]()
     fileprivate var toDelete = [NSManagedObject]()
     fileprivate var isSavingFromCK = false
     
@@ -27,34 +27,45 @@ import CoreData
     func start (_ completion: @escaping ((_ hasIncomingChanges: Bool) -> Void)) {
         
         // Backup to CloudKit existing unsynced objects
-        toSave = objsToSave()
-        toSave = objsToDelete()
-        print("Found clipboards to upload: \(toSave.count)")
-        print("Found clipboards to delete: \(toDelete.count)")
+        toUpload = ck.dataSource.managedObjectsToUpload()
+        toDelete = ck.dataSource.managedObjectsToDelete()
         
-        self.syncNextObj { (success) in
+        print("Found objs to upload: \(toUpload.count)")
+        print("Found objs to delete: \(toDelete.count)")
+        
+        uploadAll { (success) in
             self.getLatestServerChanges({ (hasIncomingChanges) in
-                self.isSavingFromCK = true
-                try? self.moc.save()
-                self.isSavingFromCK = false
+                if self.moc.hasChanges {
+                    self.isSavingFromCK = true
+                    try? self.moc.save()
+                    self.isSavingFromCK = false
+                }
                 UserDefaults.standard.lastSyncDate = Date()
+                print("Sync finished")
                 completion(hasIncomingChanges)
             })
         }
     }
     
-    fileprivate func syncNextObj (_ completion: @escaping ((_ success: Bool) -> Void)) {
+    fileprivate func uploadAll (_ completion: @escaping ((_ success: Bool) -> Void)) {
         
-        if let c = toSave.first {
-            toSave.remove(at: 0)
-            ck.save(c) { (uploadedClipboard) in
-                // After task was saved to server update it to local datastore
-                self.syncNextObj(completion)
+        self.uploadNextObj { (success) in
+            print("Upload finished")
+            completion(success)
+        }
+    }
+    
+    fileprivate func uploadNextObj (_ completion: @escaping ((_ success: Bool) -> Void)) {
+        
+        if let c = toUpload.first {
+            toUpload.remove(at: 0)
+            ck.save(c) { (localObj) in
+                self.uploadNextObj(completion)
             }
         } else if let c = toDelete.first {
             toDelete.remove(at: 0)
             ck.delete(c, completion: { success in
-                self.syncNextObj(completion)                
+                self.uploadNextObj(completion)                
             })
         } else {
             completion(true)
@@ -71,12 +82,13 @@ import CoreData
     }
 }
 
-extension RCCloudKitSyncer {
+extension RCCloudKitSynchronizer {
     
-    @objc fileprivate func willSave(notification: Notification) {
+    @objc fileprivate func willSave (notification: Notification) {
         
         guard !isSavingFromCK else {
-            print("Preventing from saving to CK the same objects that were saved from CK")
+            // After you save 
+            print("Prevent saving to CK the same objects that were saved from CK")
             return
         }
         guard let context = notification.object as? NSManagedObjectContext else {
@@ -87,10 +99,10 @@ extension RCCloudKitSyncer {
         print("inserted \(inserted)")
         print("updated \(updated)")
         
-        toSave += inserted
-        if toSave.count > 0 {
-            start({ (hasChanges) in
-                print("sync fin")
+        toUpload += Array(inserted) + Array(updated)
+        if toUpload.count > 0 {
+            uploadAll({ (success) in
+                
             })
         }
     }

@@ -26,6 +26,9 @@ extension RCCloudKitDefaultDelegate: RCCloudKitDelegate {
         
         let entities = moc.persistentStoreCoordinator!.managedObjectModel.entities
         for entity in entities {
+            guard !RCCloudKit.ignoredEntities.contains(entity.name!) else {
+                continue
+            }
             let request = NSFetchRequest<NSFetchRequestResult>(entityName: entity.name!)
             request.predicate = NSPredicate(format: "recordName == %@", recordID.recordName as CVarArg)
             if let fetchedObj = try? self.moc.fetch(request) as? [NSManagedObject], let obj = fetchedObj?.first {

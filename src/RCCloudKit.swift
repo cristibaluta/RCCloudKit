@@ -36,6 +36,7 @@ import CloudKit
     var dataSource: RCCloudKitDataSource!
     var delegate: RCCloudKitDelegate!
     var didCreateZone: (() -> Void)?
+    static var ignoredEntities = [String]()
     
     convenience init(moc: NSManagedObjectContext, identifier: String, zoneName: String) {
         self.init()

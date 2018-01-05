@@ -39,7 +39,9 @@ extension RCCloudKitDefaultDataSource: RCCloudKitDataSource {
         var objs = [NSManagedObject]()
         let entities = moc.persistentStoreCoordinator!.managedObjectModel.entities
         for entity in entities {
-            
+            guard !RCCloudKit.ignoredEntities.contains(entity.name!) else {
+                continue
+            }
             let request = NSFetchRequest<NSFetchRequestResult>(entityName: entity.name!)
             request.predicate = NSPredicate(format: "isUploaded == false")
             
@@ -55,7 +57,9 @@ extension RCCloudKitDefaultDataSource: RCCloudKitDataSource {
         var objs = [NSManagedObject]()
         let entities = moc.persistentStoreCoordinator!.managedObjectModel.entities
         for entity in entities {
-            
+            guard !RCCloudKit.ignoredEntities.contains(entity.name!) else {
+                continue
+            }
             let request = NSFetchRequest<NSFetchRequestResult>(entityName: entity.name!)
             request.predicate = NSPredicate(format: "markedForDeletion == true")
             

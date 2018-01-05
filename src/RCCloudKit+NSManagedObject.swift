@@ -30,7 +30,7 @@ extension RCCloudKit {
         })
     }
     
-    func save (_ obj: NSManagedObject, completion: @escaping ((_ obj: NSManagedObject) -> Void)) {
+    func save (_ obj: NSManagedObject, completion: @escaping ((_ updatedObj: NSManagedObject) -> Void)) {
         print(">>>>> 1. Save to cloudkit \(obj)")
         
         guard let zone = self.customZone, let privateDB = self.privateDB, let entityName = obj.entity.name else {
@@ -38,25 +38,27 @@ extension RCCloudKit {
             completion(obj)
             return
         }
-        // The changed values will be lost due to unsync operations
-        let changedValues = obj.changedValues()
-        print(obj.changedValues())
         
-        // Query from server if exists
+        // Query CKRecord from server
         fetchCKRecord(of: obj) { (record) in
             
             var record: CKRecord? = record
             if record == nil {
-                print("Record not found on server, create it now:")
+                print("Record not found on server, create it now")
                 record = CKRecord(recordType: entityName, zoneID: zone.zoneID)
             }
-            record = self.updateRecord(record!, with: changedValues)
+            record = self.updateRecord(record!, with: obj)
             
             privateDB.save(record!, completionHandler: { savedRecord, error in
                 
                 if let record = savedRecord {
-                    print(">>>>> 2. Record saved to CloudKit: \(record)")
                     let obj = self.delegate.save(record: record, in: obj)
+                    // It is essential to save the context now, can't rely on the user doing it manually
+                    // Otherwise you can end up with duplicates if the object was saved through save method instead the full sync
+                    if self.moc.hasChanges {
+                        try? self.moc.save()
+                    }
+                    print(">>>>> 2. Obj after saving to CloudKit and updated locally: \(obj)")
                     completion(obj)
                 } else {
                     completion(obj)
@@ -73,7 +75,7 @@ extension RCCloudKit {
             return
         }
         guard let recordID = dataSource.recordID(from: obj) else {
-            completion(true)// The object is not yet uploaded to CK, means we can consider it was deleted with success
+            completion(true)// The object is not yet uploaded to CK, means we can consider it was deleted with success from CK
             return
         }
         privateDB.delete(withRecordID: recordID, completionHandler: { (recordName, error) in
@@ -98,8 +100,6 @@ extension RCCloudKit {
         
         privateDB.fetch(withRecordID: recordID) { (record, error) in
             
-            print(error)
-            
             if let record = record {
                 completion(record)
             } else {
@@ -121,7 +121,6 @@ extension RCCloudKit {
             obj = NSEntityDescription.insertNewObject(forEntityName: entityName, into: moc)
         }
         obj = updateObj(obj!, with: record)
-        print(obj)
         
         return obj!
     }
@@ -134,10 +133,15 @@ extension RCCloudKit {
         return delegate.save(record: record, in: obj)
     }
     
-    fileprivate func updateRecord (_ record: CKRecord, with changedValues: [String: Any]) -> CKRecord {
+    fileprivate func updateRecord (_ record: CKRecord, with managedObject: NSManagedObject) -> CKRecord {
         
-        for (key, value) in changedValues {
-            record[key] = value as? CKRecordValue
+        for (name, _) in  managedObject.entity.attributesByName {
+            
+            guard name != "recordID" else {
+                // RecordID is a reserved key name
+                continue
+            }
+            record[name] = managedObject.value(forKey: name) as? CKRecordValue
         }
         
         return record

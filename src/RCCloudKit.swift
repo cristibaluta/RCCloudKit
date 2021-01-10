@@ -64,6 +64,7 @@ func rccloudkitprint(_ obj: Any?) {
     func fetchChangedRecords (token: CKServerChangeToken?,
                               completion: @escaping ((_ changedRecords: [CKRecord], _ deletedRecordsIds: [CKRecord.ID]) -> Void)) {
         
+        rccloudkitprint("fetchChangedRecords token \(String(describing: token))")
         var changedRecords = [CKRecord]()
         var deletedRecordsIds = [CKRecord.ID]()
 
@@ -79,16 +80,18 @@ func rccloudkitprint(_ obj: Any?) {
                                                    optionsByRecordZoneID: [customZone.zoneID: options])
         op.fetchAllChanges = true
         op.recordChangedBlock = { record in
-//            print(record)
+            rccloudkitprint("record changed \(record)")
             changedRecords.append(record)
         }
         op.recordWithIDWasDeletedBlock = { (recordName, id) in
-//            print(recordName)
+            rccloudkitprint("record deleted \(recordName) \(id)")
             deletedRecordsIds.append(recordName)
         }
         op.recordZoneFetchCompletionBlock = { (zoneId, serverChangeToken, clientChangeTokenData, more, error) in
-//            print(serverChangeToken)
-//            print(clientChangeTokenData)
+            rccloudkitprint("serverChangeToken \(String(describing: serverChangeToken))")
+            rccloudkitprint("clientChangeTokenData \(String(describing: clientChangeTokenData))")
+            rccloudkitprint("more \(more)")
+            rccloudkitprint("error \(String(describing: error))")
             if !more {
                 completion(changedRecords, deletedRecordsIds)
                 UserDefaults.standard.serverChangeToken = serverChangeToken

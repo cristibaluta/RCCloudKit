@@ -14,7 +14,7 @@ import CloudKit
     
     var moc: NSManagedObjectContext!
     
-    convenience init(moc: NSManagedObjectContext) {
+    convenience init (moc: NSManagedObjectContext) {
         self.init()
         self.moc = moc
     }
@@ -22,7 +22,7 @@ import CloudKit
 
 extension RCCloudKitDefaultDelegate: RCCloudKitDelegate {
     
-    func delete(with recordID: CKRecordID) {
+    func delete (with recordID: CKRecord.ID) {
         
         let entities = moc.persistentStoreCoordinator!.managedObjectModel.entities
         for entity in entities {
@@ -31,13 +31,13 @@ extension RCCloudKitDefaultDelegate: RCCloudKitDelegate {
             }
             let request = NSFetchRequest<NSFetchRequestResult>(entityName: entity.name!)
             request.predicate = NSPredicate(format: "recordName == %@", recordID.recordName as CVarArg)
-            if let fetchedObj = try? self.moc.fetch(request) as? [NSManagedObject], let obj = fetchedObj?.first {
-                self.moc.delete(obj)
+            if let fetchedObj = (try? self.moc.fetch(request) as? [NSManagedObject])?.first {
+                self.moc.delete(fetchedObj)
             }
         }
     }
     
-    func save(record: CKRecord, in managedObject: NSManagedObject) -> NSManagedObject {
+    func save (record: CKRecord, in managedObject: NSManagedObject) -> NSManagedObject {
         
         managedObject.setValue(record.recordID, forKey: "recordID")
         managedObject.setValue(record.recordID.recordName, forKey: "recordName")

@@ -8,12 +8,12 @@ import CoreData
 
 @objc class RCCloudKitSynchronizer: NSObject {
     
-    fileprivate let moc: NSManagedObjectContext!
-    fileprivate let ck: RCCloudKit!
-    fileprivate var toUpload = [NSManagedObject]()
-    fileprivate var toDelete = [NSManagedObject]()
+    private let moc: NSManagedObjectContext!
+    private let ck: RCCloudKit!
+    private var toUpload = [NSManagedObject]()
+    private var toDelete = [NSManagedObject]()
     
-    init(moc: NSManagedObjectContext, ck: RCCloudKit) {
+    init (moc: NSManagedObjectContext, ck: RCCloudKit) {
         self.moc = moc
         self.ck = ck
         super.init()
@@ -25,17 +25,17 @@ import CoreData
         toUpload = ck.dataSource.managedObjectsToUpload()
         toDelete = ck.dataSource.managedObjectsToDelete()
         
-        print("Found objs to upload: \(toUpload.count)")
-        print("Found objs to delete: \(toDelete.count)")
+        rccloudkitprint("Found local objs to upload: \(toUpload.count)")
+        rccloudkitprint("Found local objs to delete: \(toDelete.count)")
         
-        startUpload { (success) in
+        startUpload { success in
             
-            self.startDownload { (hasIncomingChanges) in
+            self.startDownload { hasIncomingChanges in
                 
                 if self.moc.hasChanges {
                     try? self.moc.save()
                 }
-                print("Sync finished")
+                rccloudkitprint("Sync finished")
                 completion(hasIncomingChanges)
             }
         }
@@ -43,8 +43,8 @@ import CoreData
     
     func startUpload (_ completion: @escaping ((_ success: Bool) -> Void)) {
         
-        uploadNextObj { (success) in
-            print("Upload finished")
+        uploadNextObj { success in
+            rccloudkitprint("Upload of all objects complete")
             completion(success)
         }
     }
@@ -52,24 +52,24 @@ import CoreData
     func startDownload (_ completion: @escaping ((_ hasIncomingChanges: Bool) -> Void)) {
         
         ck.queryUpdates() { changed, deletedIds, error in
-            print("Found objs to save from the cloud \(changed.count)")
-            print("Found objs to delete from the cloud \(deletedIds.count)")
+            rccloudkitprint("Found cloud objs to save \(changed.count)")
+            rccloudkitprint("Found cloud objs to delete \(deletedIds.count)")
             completion(changed.count > 0 || deletedIds.count > 0)
         }
     }
     
-    fileprivate func uploadNextObj (_ completion: @escaping ((_ success: Bool) -> Void)) {
+    private func uploadNextObj (_ completion: @escaping ((_ success: Bool) -> Void)) {
         
         if let c = toUpload.first {
             toUpload.remove(at: 0)
-            ck.save(c) { (localObj) in
+            ck.save(c) { localObj in
                 self.uploadNextObj(completion)
             }
         } else if let c = toDelete.first {
             toDelete.remove(at: 0)
-            ck.delete(c, completion: { success in
+            ck.delete(c) { success in
                 self.uploadNextObj(completion)                
-            })
+            }
         } else {
             completion(true)
         }

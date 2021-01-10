@@ -7,10 +7,16 @@ import Foundation
 import CoreData
 import CloudKit
 
+func rccloudkitprint(_ obj: Any?) {
+    if RCCloudKit.loggingEnabled {
+        print("--RCCloudKit: \(obj ?? "")")
+    }
+}
+
 @objc protocol RCCloudKitDataSource {
     // Provide the NSManagedObject corresponding to the CKRecord. If none provided, it will be created.
     func managedObject(from record: CKRecord) -> NSManagedObject?
-    func recordID(from managedObject: NSManagedObject) -> CKRecordID?
+    func recordID(from managedObject: NSManagedObject) -> CKRecord.ID?
     // This are the NSManagedObjects that were never uploaded or the modifiedDate is newer than the lastUploadDate provided by RCCloudKit
     func managedObjectsToUpload() -> [NSManagedObject]
     // There are 2 ways to handle deleted objects:
@@ -22,7 +28,7 @@ import CloudKit
 
 @objc protocol RCCloudKitDelegate {
     // This is your responsability to delete from CoreData the coresponding NSManagedObject
-    func delete(with recordID: CKRecordID)
+    func delete(with recordID: CKRecord.ID)
     // This is your responsability to save the CKRecord reference to the NSManagedObject
     func save(record: CKRecord, in managedObject: NSManagedObject) -> NSManagedObject
 }
@@ -37,6 +43,7 @@ import CloudKit
     var delegate: RCCloudKitDelegate!
     var didCreateZone: (() -> Void)?
     static var ignoredEntities = [String]()
+    static var loggingEnabled = false
     
     convenience init(moc: NSManagedObjectContext, identifier: String, zoneName: String) {
         self.init()
@@ -46,7 +53,7 @@ import CloudKit
         container = CKContainer(identifier: identifier)
         privateDB = container?.privateCloudDatabase
         privateDB!.save( CKRecordZone(zoneName: zoneName) ) { (recordZone, err) in
-            print("Zone created \(String(describing: recordZone))")
+            rccloudkitprint("Zone created \(String(describing: recordZone))")
             if err == nil {
                 self.customZone = recordZone
                 self.didCreateZone?()
@@ -55,18 +62,18 @@ import CloudKit
     }
     
     func fetchChangedRecords (token: CKServerChangeToken?,
-                              completion: @escaping ((_ changedRecords: [CKRecord], _ deletedRecordsIds: [CKRecordID]) -> Void)) {
+                              completion: @escaping ((_ changedRecords: [CKRecord], _ deletedRecordsIds: [CKRecord.ID]) -> Void)) {
         
         var changedRecords = [CKRecord]()
-        var deletedRecordsIds = [CKRecordID]()
+        var deletedRecordsIds = [CKRecord.ID]()
 
         guard let customZone = self.customZone, let privateDB = self.privateDB else {
-            print("Not logged in or zone not created")
+            rccloudkitprint("Not logged in or zone not created")
             completion(changedRecords, deletedRecordsIds)
             return
         }
         
-        let options = CKFetchRecordZoneChangesOptions()
+        let options = CKFetchRecordZoneChangesOperation.ZoneOptions()
         options.previousServerChangeToken = token
         let op = CKFetchRecordZoneChangesOperation(recordZoneIDs: [customZone.zoneID], 
                                                    optionsByRecordZoneID: [customZone.zoneID: options])
@@ -103,7 +110,7 @@ import CloudKit
     func fetchRecords (ofType type: String, predicate: NSPredicate, completion: @escaping ((_ ckRecord: [CKRecord]?) -> Void)) {
         
         guard let customZone = self.customZone, let privateDB = self.privateDB else {
-            print("Not logged in or zone not created")
+            rccloudkitprint("Not logged in or zone not created")
             return
         }
         
@@ -118,4 +125,3 @@ import CloudKit
         }
     }
 }
-

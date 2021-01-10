@@ -11,7 +11,7 @@ import CloudKit
     
     var moc: NSManagedObjectContext!
     
-    convenience init(moc: NSManagedObjectContext) {
+    convenience init (moc: NSManagedObjectContext) {
         self.init()
         self.moc = moc
     }
@@ -19,19 +19,19 @@ import CloudKit
 
 extension RCCloudKitDefaultDataSource: RCCloudKitDataSource {
     
-    func managedObject(from record: CKRecord) -> NSManagedObject? {
+    func managedObject (from record: CKRecord) -> NSManagedObject? {
         
         let entityName = record.recordType
         let request = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
         request.predicate = NSPredicate(format: "recordName == %@", record.recordID.recordName as CVarArg)
         if let fetchedObj = try? moc.fetch(request) as? [NSManagedObject] {
-            return fetchedObj?.first
+            return fetchedObj.first
         }
         return nil
     }
     
-    func recordID(from managedObject: NSManagedObject) -> CKRecordID? {
-        return managedObject.value(forKey: "recordID") as? CKRecordID
+    func recordID (from managedObject: NSManagedObject) -> CKRecord.ID? {
+        return managedObject.value(forKey: "recordID") as? CKRecord.ID
     }
     
     func managedObjectsToUpload() -> [NSManagedObject] {
@@ -45,8 +45,8 @@ extension RCCloudKitDefaultDataSource: RCCloudKitDataSource {
             let request = NSFetchRequest<NSFetchRequestResult>(entityName: entity.name!)
             request.predicate = NSPredicate(format: "isUploaded == false")
             
-            if let fetchedObjs = try? moc.fetch(request) as? [NSManagedObject], let o = fetchedObjs {
-                objs += o
+            if let fetchedObjs = try? moc.fetch(request) as? [NSManagedObject] {
+                objs += fetchedObjs
             }
         }
         return objs
@@ -63,8 +63,8 @@ extension RCCloudKitDefaultDataSource: RCCloudKitDataSource {
             let request = NSFetchRequest<NSFetchRequestResult>(entityName: entity.name!)
             request.predicate = NSPredicate(format: "markedForDeletion == true")
             
-            if let fetchedObjs = try? moc.fetch(request) as? [NSManagedObject], let o = fetchedObjs {
-                objs += o
+            if let fetchedObjs = try? moc.fetch(request) as? [NSManagedObject] {
+                objs += fetchedObjs
             }
         }
         return objs

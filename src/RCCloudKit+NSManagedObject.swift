@@ -31,20 +31,20 @@ extension RCCloudKit {
     }
     
     func save (_ obj: NSManagedObject, completion: @escaping ((_ updatedObj: NSManagedObject) -> Void)) {
-        print(">>>>> 1. Save to cloudkit \(obj)")
+        rccloudkitprint("1. Save to cloudkit \(obj)")
         
         guard let zone = self.customZone, let privateDB = self.privateDB, let entityName = obj.entity.name else {
-            print("Can't save, not logged in to iCloud or zone not ready")
+            rccloudkitprint("Can't save, not logged in to iCloud or zone not ready")
             completion(obj)
             return
         }
         
         // Query CKRecord from server
-        fetchCKRecord(of: obj) { (record) in
+        fetchCKRecord(of: obj) { record in
             
             var record: CKRecord? = record
             if record == nil {
-                print("Record not found on server, create it now")
+                rccloudkitprint("Record not found on server, create it now")
                 record = CKRecord(recordType: entityName, zoneID: zone.zoneID)
             }
             record = self.updateRecord(record!, with: obj)
@@ -58,7 +58,7 @@ extension RCCloudKit {
                     if self.moc.hasChanges {
                         try? self.moc.save()
                     }
-                    print(">>>>> 2. Obj after saving to CloudKit and updated locally: \(obj)")
+                    rccloudkitprint("2. Obj after saving to CloudKit and updated locally: \(obj)")
                     completion(obj)
                 } else {
                     completion(obj)
@@ -70,7 +70,7 @@ extension RCCloudKit {
     func delete (_ obj: NSManagedObject, completion: @escaping ((_ success: Bool) -> Void)) {
         
         guard let _ = self.customZone, let privateDB = self.privateDB else {
-            print("Not logged in or zone not created")
+            rccloudkitprint("Not logged in or zone not created")
             completion(false)
             return
         }
@@ -89,11 +89,11 @@ extension RCCloudKit {
     func fetchCKRecord (of obj: NSManagedObject, completion: @escaping ((_ record: CKRecord?) -> Void)) {
         
         guard let privateDB = self.privateDB else {
-            print("Not logged in or zone not created")
+            rccloudkitprint("Not logged in or zone not created")
             completion(nil)
             return
         }
-        guard let recordID = obj.value(forKey: "recordID") as? CKRecordID else {
+        guard let recordID = obj.value(forKey: "recordID") as? CKRecord.ID else {
             completion(nil)
             return
         }
@@ -108,16 +108,16 @@ extension RCCloudKit {
         }
     }
     
-    fileprivate func objs (from records: [CKRecord]) -> [NSManagedObject] {
+    private func objs (from records: [CKRecord]) -> [NSManagedObject] {
         return records.map { self.obj(from: $0) }
     }
     
-    fileprivate func obj (from record: CKRecord) -> NSManagedObject {
+    private func obj (from record: CKRecord) -> NSManagedObject {
         
         let entityName = record.recordType
         var obj: NSManagedObject? = dataSource.managedObject(from: record)
         if obj == nil {
-            print("NSManagedObject for recordName \(record.recordID.recordName) not found, creating one now")
+            rccloudkitprint("NSManagedObject for recordName \(record.recordID.recordName) not found, creating one now")
             obj = NSEntityDescription.insertNewObject(forEntityName: entityName, into: moc)
         }
         obj = updateObj(obj!, with: record)
@@ -125,7 +125,7 @@ extension RCCloudKit {
         return obj!
     }
     
-    fileprivate func updateObj (_ obj: NSManagedObject, with record: CKRecord) -> NSManagedObject {
+    private func updateObj (_ obj: NSManagedObject, with record: CKRecord) -> NSManagedObject {
         
         for key in record.allKeys() {
             obj.setValue(record[key], forKey: key)
@@ -133,7 +133,7 @@ extension RCCloudKit {
         return delegate.save(record: record, in: obj)
     }
     
-    fileprivate func updateRecord (_ record: CKRecord, with managedObject: NSManagedObject) -> CKRecord {
+    private func updateRecord (_ record: CKRecord, with managedObject: NSManagedObject) -> CKRecord {
         
         for (name, _) in  managedObject.entity.attributesByName {
             

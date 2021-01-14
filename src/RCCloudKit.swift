@@ -45,7 +45,7 @@ func rccloudkitprint(_ obj: Any?) {
     static var ignoredEntities = [String]()
     static var loggingEnabled = false
     
-    convenience init(moc: NSManagedObjectContext, identifier: String, zoneName: String) {
+    convenience init (moc: NSManagedObjectContext, identifier: String, zoneName: String) {
         self.init()
         self.moc = moc
         dataSource = RCCloudKitDefaultDataSource(moc: moc)
@@ -64,7 +64,7 @@ func rccloudkitprint(_ obj: Any?) {
     func fetchChangedRecords (token: CKServerChangeToken?,
                               completion: @escaping ((_ changedRecords: [CKRecord], _ deletedRecordsIds: [CKRecord.ID]) -> Void)) {
         
-        rccloudkitprint("fetchChangedRecords token \(String(describing: token))")
+        rccloudkitprint("Fetch changed records with previousServerChangeToken \(String(describing: token))")
         var changedRecords = [CKRecord]()
         var deletedRecordsIds = [CKRecord.ID]()
 

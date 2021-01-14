@@ -57,6 +57,7 @@ extension RCCloudKit {
                     // Otherwise you can end up with duplicates if the object was saved through save method instead the full sync
                     if self.moc.hasChanges {
                         try? self.moc.save()
+                        rccloudkitprint("Save context: \(String(describing: self.moc))")
                     }
                     rccloudkitprint("2. Obj after saving to CloudKit and updated locally: \(obj)")
                     completion(obj)
@@ -69,17 +70,21 @@ extension RCCloudKit {
     
     func delete (_ obj: NSManagedObject, completion: @escaping ((_ success: Bool) -> Void)) {
         
+        rccloudkitprint("Delete from CK \(obj)")
         guard let _ = self.customZone, let privateDB = self.privateDB else {
             rccloudkitprint("Not logged in or zone not created")
             completion(false)
             return
         }
         guard let recordID = dataSource.recordID(from: obj) else {
+            rccloudkitprint("Local obj is missing a recordID, means it was never uploaded to CK")
             completion(true)// The object is not yet uploaded to CK, means we can consider it was deleted with success from CK
             return
         }
         privateDB.delete(withRecordID: recordID, completionHandler: { (recordName, error) in
-            completion(error != nil)
+            rccloudkitprint("Deleted from ck with recordName: \(String(describing: recordName)), error: \(String(describing: error))")
+            let success = error == nil
+            completion(success)
         })
     }
 }

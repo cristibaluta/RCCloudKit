@@ -24,9 +24,9 @@ extension RCCloudKit {
                 self.delegate.delete(with: recordID)
             }
             
-            DispatchQueue.main.async {
+//            DispatchQueue.main.async {
                 completion(objects, deletedRecordsNames, nil)
-            }
+//            }
         })
     }
     
@@ -45,7 +45,8 @@ extension RCCloudKit {
             var record: CKRecord? = record
             if record == nil {
                 rccloudkitprint("Record not found on server, create it now")
-                record = CKRecord(recordType: entityName, zoneID: zone.zoneID)
+                let recordID = CKRecord.ID(zoneID: zone.zoneID)
+                record = CKRecord(recordType: entityName, recordID: recordID)
             }
             record = self.updateRecord(record!, with: obj)
             
@@ -59,7 +60,7 @@ extension RCCloudKit {
                         try? self.moc.save()
                         rccloudkitprint("Save context: \(String(describing: self.moc))")
                     }
-                    rccloudkitprint("2. Obj after saving to CloudKit and updated locally: \(obj)")
+                    rccloudkitprint("2. Save end to cloudkit and updated locally: \(obj)")
                     completion(obj)
                 } else {
                     completion(obj)

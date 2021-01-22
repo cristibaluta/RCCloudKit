@@ -23,10 +23,7 @@ extension RCCloudKit {
             for recordID in deletedRecordsIds {
                 self.delegate.delete(with: recordID)
             }
-            
-//            DispatchQueue.main.async {
-                completion(objects, deletedRecordsNames, nil)
-//            }
+            completion(objects, deletedRecordsNames, nil)
         })
     }
     

@@ -88,6 +88,7 @@ func rccloudkitprint(_ obj: Any?) {
             deletedRecordsIds.append(recordName)
         }
         op.recordZoneFetchCompletionBlock = { (zoneId, serverChangeToken, clientChangeTokenData, more, error) in
+            rccloudkitprint("fetch complete")
             rccloudkitprint("serverChangeToken \(String(describing: serverChangeToken))")
             rccloudkitprint("clientChangeTokenData \(String(describing: clientChangeTokenData))")
             rccloudkitprint("more \(more)")
@@ -118,11 +119,13 @@ func rccloudkitprint(_ obj: Any?) {
         }
         
         let query = CKQuery(recordType: type, predicate: predicate)
+        
         privateDB.perform(query, inZoneWith: customZone.zoneID) { (results: [CKRecord]?, error) in
             
             if let results = results {
                 completion(results)
             } else {
+                rccloudkitprint("error \(String(describing: error)) for query \(query)")
                 completion(nil)
             }
         }

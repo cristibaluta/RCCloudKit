@@ -11,7 +11,7 @@ import CloudKit
     
     var moc: NSManagedObjectContext!
     
-    convenience init (moc: NSManagedObjectContext) {
+    @objc convenience init (moc: NSManagedObjectContext) {
         self.init()
         self.moc = moc
     }

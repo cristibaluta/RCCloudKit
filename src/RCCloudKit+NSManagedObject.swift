@@ -9,11 +9,11 @@ import CoreData
 
 extension RCCloudKit {
     
-    func queryUpdates (_ completion: @escaping ([NSManagedObject], [String], NSError?) -> Void) {
+    @objc func queryUpdates (_ completion: @escaping ([NSManagedObject], [String], Error?) -> Void) {
         
         let changeToken = UserDefaults.standard.serverChangeToken
         
-        fetchChangedRecords(token: changeToken, completion: { (changedRecords, deletedRecordsIds) in
+        fetchChangedRecords(token: changeToken, completion: { (changedRecords, deletedRecordsIds, error) in
             
             // Save CKRecord to CoreData
             let objects = self.objs(from: changedRecords)
@@ -23,11 +23,11 @@ extension RCCloudKit {
             for recordID in deletedRecordsIds {
                 self.delegate.delete(with: recordID)
             }
-            completion(objects, deletedRecordsNames, nil)
+            completion(objects, deletedRecordsNames, error)
         })
     }
     
-    func save (_ obj: NSManagedObject, completion: @escaping ((_ updatedObj: NSManagedObject) -> Void)) {
+    @objc func save (_ obj: NSManagedObject, completion: @escaping ((_ updatedObj: NSManagedObject) -> Void)) {
         rccloudkitprint("1. Save to cloudkit \(obj)")
         
         guard let zone = self.customZone, let privateDB = self.privateDB, let entityName = obj.entity.name else {
@@ -66,7 +66,7 @@ extension RCCloudKit {
         }
     }
     
-    func delete (_ obj: NSManagedObject, completion: @escaping ((_ success: Bool) -> Void)) {
+    @objc func delete (_ obj: NSManagedObject, completion: @escaping ((_ success: Bool) -> Void)) {
         
         rccloudkitprint("Delete from CK \(obj)")
         guard let _ = self.customZone, let privateDB = self.privateDB else {
@@ -89,7 +89,7 @@ extension RCCloudKit {
 
 extension RCCloudKit {
     
-    func fetchCKRecord (of obj: NSManagedObject, completion: @escaping ((_ record: CKRecord?) -> Void)) {
+    @objc func fetchCKRecord (of obj: NSManagedObject, completion: @escaping ((_ record: CKRecord?) -> Void)) {
         
         guard let privateDB = self.privateDB else {
             rccloudkitprint("Not logged in or zone not created")

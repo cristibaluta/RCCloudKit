@@ -38,14 +38,14 @@ func rccloudkitprint(_ obj: Any?) {
     internal var container: CKContainer?
     internal var privateDB: CKDatabase?
     internal var customZone: CKRecordZone?
-    var moc: NSManagedObjectContext!
-    var dataSource: RCCloudKitDataSource!
-    var delegate: RCCloudKitDelegate!
-    var didCreateZone: (() -> Void)?
-    static var ignoredEntities = [String]()
-    static var loggingEnabled = false
+    @objc var moc: NSManagedObjectContext!
+    @objc var dataSource: RCCloudKitDataSource!
+    @objc var delegate: RCCloudKitDelegate!
+    @objc var didCreateZone: (() -> Void)?
+    @objc static var ignoredEntities = [String]()
+    @objc static var loggingEnabled = false
     
-    convenience init (moc: NSManagedObjectContext, identifier: String, zoneName: String) {
+    @objc convenience init (moc: NSManagedObjectContext, identifier: String, zoneName: String) {
         self.init()
         self.moc = moc
         dataSource = RCCloudKitDefaultDataSource(moc: moc)
@@ -62,7 +62,9 @@ func rccloudkitprint(_ obj: Any?) {
     }
     
     func fetchChangedRecords (token: CKServerChangeToken?,
-                              completion: @escaping ((_ changedRecords: [CKRecord], _ deletedRecordsIds: [CKRecord.ID]) -> Void)) {
+                              completion: @escaping ((_ changedRecords: [CKRecord],
+                                                      _ deletedRecordsIds: [CKRecord.ID],
+                                                      _ error: Error?) -> Void)) {
         
         rccloudkitprint("Fetch changed records with previousServerChangeToken \(String(describing: token))")
         var changedRecords = [CKRecord]()
@@ -70,7 +72,7 @@ func rccloudkitprint(_ obj: Any?) {
 
         guard let customZone = self.customZone, let privateDB = self.privateDB else {
             rccloudkitprint("Not logged in or zone not created")
-            completion(changedRecords, deletedRecordsIds)
+            completion(changedRecords, deletedRecordsIds, nil)
             return
         }
         
@@ -80,21 +82,24 @@ func rccloudkitprint(_ obj: Any?) {
                                                    optionsByRecordZoneID: [customZone.zoneID: options])
         op.fetchAllChanges = true
         op.recordChangedBlock = { record in
-            rccloudkitprint("record changed \(record)")
+            rccloudkitprint("record changed \(record) \(Date())")
             changedRecords.append(record)
         }
         op.recordWithIDWasDeletedBlock = { (recordName, id) in
-            rccloudkitprint("record deleted \(recordName) \(id)")
+            rccloudkitprint("record deleted \(recordName) \(id) \(Date())")
             deletedRecordsIds.append(recordName)
         }
         op.recordZoneFetchCompletionBlock = { (zoneId, serverChangeToken, clientChangeTokenData, more, error) in
-            rccloudkitprint("fetch complete")
+            rccloudkitprint("fetch complete \(Date())")
             rccloudkitprint("serverChangeToken \(String(describing: serverChangeToken))")
             rccloudkitprint("clientChangeTokenData \(String(describing: clientChangeTokenData))")
             rccloudkitprint("more \(more)")
             rccloudkitprint("error \(String(describing: error))")
-            if !more {
-                completion(changedRecords, deletedRecordsIds)
+            if error != nil {
+                completion(changedRecords, deletedRecordsIds, error)
+            }
+            else if !more {
+                completion(changedRecords, deletedRecordsIds, error)
                 UserDefaults.standard.serverChangeToken = serverChangeToken
             }
         }

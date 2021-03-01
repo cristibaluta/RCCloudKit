@@ -12,14 +12,18 @@ import CoreData
     private let ck: RCCloudKit!
     private var toUpload = [NSManagedObject]()
     private var toDelete = [NSManagedObject]()
+    var isSyncing = false
     
-    init (moc: NSManagedObjectContext, ck: RCCloudKit) {
+    @objc init (moc: NSManagedObjectContext, ck: RCCloudKit) {
         self.moc = moc
         self.ck = ck
         super.init()
     }
     
-    func start (_ completion: @escaping ((_ hasIncomingChanges: Bool) -> Void)) {
+    @objc func start (_ completion: @escaping ((_ hasIncomingChanges: Bool) -> Void)) {
+        
+        rccloudkitprint("Sync start \(Date())")
+        isSyncing = true
         
         // Backup to CloudKit existing unsynced objects
         toUpload = ck.dataSource.managedObjectsToUpload()
@@ -35,23 +39,30 @@ import CoreData
                 if self.moc.hasChanges {
                     try? self.moc.save()
                 }
-                rccloudkitprint("Sync finished")
+                rccloudkitprint("Sync finish \(Date())")
+                self.isSyncing = false
                 completion(hasIncomingChanges)
             }
         }
     }
     
-    func startUpload (_ completion: @escaping ((_ success: Bool) -> Void)) {
+    @objc func startUpload (_ completion: @escaping ((_ success: Bool) -> Void)) {
+        
+        rccloudkitprint("Upload start \(Date())")
         
         uploadNextObj { success in
-            rccloudkitprint("Upload of all objects complete")
+            rccloudkitprint("Upload finish \(success) \(Date())")
             completion(success)
         }
     }
     
-    func startDownload (_ completion: @escaping ((_ hasIncomingChanges: Bool) -> Void)) {
+    @objc func startDownload (_ completion: @escaping ((_ hasIncomingChanges: Bool) -> Void)) {
+        
+        rccloudkitprint("Download start \(Date())")
         
         ck.queryUpdates() { changed, deletedIds, error in
+            rccloudkitprint("Download end \(Date())")
+            rccloudkitprint("Error \(String(describing: error))")
             rccloudkitprint("Found cloud objs to save \(changed.count)")
             rccloudkitprint("Found cloud objs to delete \(deletedIds.count)")
             completion(changed.count > 0 || deletedIds.count > 0)
